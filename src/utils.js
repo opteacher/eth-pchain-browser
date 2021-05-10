@@ -17,5 +17,11 @@ export default {
     } else {
       return resp.data.result
     }
+  },
+  toWei (strNum, justRate = true) {
+    return parseInt(strNum, 16) / (justRate ? Math.pow(10, 18) : 1)
+  },
+  fromWei (weiNum, justRate = true) {
+    return '0x' + (weiNum * (justRate ? Math.pow(10, 18) : 1)).toString(16)
   }
 }

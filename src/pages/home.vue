@@ -24,7 +24,7 @@
         </a-descriptions-item>
         <a-descriptions-item label="基账户地址">
           <div class="ant-list-item" style="padding: 0">
-            <div style="width: 60vw">
+            <div style="width: 50vw">
               <p class="no-br">{{$store.state.coinbase.value}}</p>
             </div>
             <a-button type="link"><a-icon type="copy"/></a-button>
@@ -42,15 +42,15 @@
                   :has-feedback="genAcc.passwdErr"
                   :validate-status="genAcc.passwdErr ? 'error' : ''"
                   :help="genAcc.passwdErr ? '账户密码不能为空' : ''">
-                  <a-input v-model="genAcc.passwd" placeholder="输入账户密码"/>
+                  <a-input v-model="genAcc.passwd" placeholder="输入新账户密码"/>
                 </a-form-item>
               </a-form>
             </a-modal>
           </div>
           <a-list item-layout="horizontal" :data-source="$store.state.accounts.value">
             <a-list-item slot="renderItem" slot-scope="item, index">
-              <div style="width: 60vw">
-                <p class="no-br">{{item}}</p>
+              <div style="width: 50vw">
+                <p class="no-br">{{item.address}}</p>
               </div>
               <a-button type="link"><a-icon type="copy"/></a-button>
             </a-list-item>
@@ -60,7 +60,7 @@
     </a-card>
 
     <a-card class="mb-5" title="块信息">
-      <a-input-search class="mb-10" placeholder="输入块哈希或块高" @search="onSearch">
+      <a-input-search class="mb-10" placeholder="输入块哈希或块高" @search="onSearchBlock">
         <a-button slot="enterButton" type="primary" :loading="block.searching">
           <a-icon type="search"/>
         </a-button>
@@ -75,6 +75,29 @@
                 </div>
               </a-list-item-meta>
               <div style="text-align: right">{{item.time}}</div>
+            </a-list-item>
+          </a>
+        </a-list>
+      </div>
+    </a-card>
+
+    <a-card class="mb-5" title="交易池">
+      <a-input-search class="mb-10" placeholder="输入交易哈希" @search="onSearchTx">
+        <a-button slot="enterButton" type="primary" :loading="tx.searching">
+          <a-icon type="search"/>
+        </a-button>
+      </a-input-search>
+      <div style="height: 30vh; overflow-y: scroll">
+        <a-list size="small" item-layout="horizontal"
+          :data-source="Object.values($store.state.txpoolContent.value.pending)"
+        >
+          <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
+            <a-list-item>
+              <a-list-item-meta>
+                <div slot="description" style="width: 60vw">
+                  <p class="no-br">{{item.hash}}</p>
+                </div>
+              </a-list-item-meta>
             </a-list-item>
           </a>
         </a-list>
@@ -96,6 +119,9 @@ export default {
         select: null,
         searching: false
       },
+      tx: {
+        searching: false
+      },
       genAcc: {
         shwDlg: false,
         passwd: '',
@@ -110,7 +136,7 @@ export default {
     async onMineChanged (argus) {
       await utils.reqChain(`miner_${argus ? 'start' : 'stop'}`)
     },
-    async onSearch (argus) {
+    async onSearchBlock (argus) {
       this.block.searching = true
       const blockId = parseInt(argus)
       let block = null
@@ -124,8 +150,14 @@ export default {
       console.log(block)
       this.block.searching = false
     },
+    onSearchTx (argus) {
+      console.log(argus)
+    },
     onBlockClicked (block) {
       console.log(block)
+    },
+    onTxClicked (tx) {
+      console.log(tx)
     },
     async onGenAccount () {
       if (!this.genAcc.passwd) {

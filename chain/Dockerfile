@@ -21,8 +21,12 @@ CMD ["geth", \
   "--http", \
   "--http.addr", "0.0.0.0", \
   "--http.corsdomain", "*", \
-  "--http.api", "eth,web3,personal,net,miner,admin,debug,db", \
+  "--http.api", "eth,web3,personal,net,miner,admin,debug,txpool", \
+  "--ws", \
+  "--ws.addr", "0.0.0.0", \
+  "--ws.api", "eth,web3,personal,net,miner,admin,debug,txpool", \
   "--nodiscover", \
+  "--allow-insecure-unlock", \
   "--dev", \
   "--dev.period", "1"]
 

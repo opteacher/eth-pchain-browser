@@ -2,7 +2,7 @@
   <layout actTab="trade">
     <a-tabs default-active-key="b2c" style="height: 100%; background-color: white">
       <a-tab-pane key="b2c" tab="基账户转账" style="padding: 15px 10px">
-        <a-form :form="form" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransToAddr">
+        <a-form :form="formTo" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransToSubmit">
           <a-form-item label="基账户余额">
             <a-input-search
               :value="$store.state.cbBalance.value"
@@ -24,14 +24,17 @@
               ]"
               placeholder="选择转账目标地址"
             >
-              <a-select-option v-for="addr in $store.state.accounts.value" :key="addr" :value="addr">
-                {{addr}}
+              <a-select-option
+                v-for="account in $store.state.accounts.value"
+                :key="account.address" :value="account.address"
+              >
+                {{account.address}}
               </a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="交易金额">
             <a-input
-              v-decorator="['amount', { rules: [{ required: true, message: '必须输入金额!' }] }]"
+              v-decorator="['amountTo', { rules: [{ required: true, message: '必须输入金额!' }] }]"
               placeholder="输入交易金额"
               suffix="ETH"
               type="number"
@@ -44,8 +47,62 @@
           </a-form-item>
         </a-form>
       </a-tab-pane>
-      <a-tab-pane key="c2c" tab="点对点转账" force-render>
-        Content of Tab Pane 2
+      <a-tab-pane key="c2c" tab="点对点转账" force-render style="padding: 15px 10px">
+        <a-form :form="formFrom" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransFromSubmit">
+          <a-form-item label="源地址">
+            <a-select
+              v-decorator="[
+                'fromAddr', { rules: [{ required: true, message: '必须选择转账地址！' }] },
+              ]"
+              placeholder="选择转账源地址"
+              @change="onFromAddrChanged"
+            >
+              <a-select-option
+                v-for="account in $store.state.accounts.value"
+                :key="account.address" :value="account.address"
+              >
+                {{account.address}}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="源账户密码">
+            <a-input-password placeholder="输入源账户密码"
+              v-decorator="['passwd', { rules: [{ required: true, message: '必须输入源账户密码！' }] }]"
+            />
+          </a-form-item>
+          <a-form-item label="目标地址">
+            <a-select
+              v-decorator="[
+                'toAddr', { rules: [{ required: true, message: '必须选择转账地址！' }] },
+              ]"
+              placeholder="选择转账目标地址"
+            >
+              <a-select-option
+                v-for="account in $store.state.accounts.value"
+                :key="account.address" :value="account.address"
+              >
+                {{account.address}}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item :label="`交易金额${fromBalance !== -1 ? '（可用余额：' + fromBalance + '）' : ''}`">
+            <a-input-search
+              v-decorator="['amountFrom', { rules: [{ required: true, message: '必须输入金额!' }] }]"
+              placeholder="输入交易金额"
+              suffix="ETH"
+              type="number"
+            >
+              <a-button slot="enterButton" @click.native="onAllBalanceClicked">
+                全部余额
+              </a-button>
+            </a-input-search>
+          </a-form-item>
+          <a-form-item :wrapper-col="{ span: 12, offset: 5 }">
+            <a-button type="primary" html-type="submit">
+              转账
+            </a-button>
+          </a-form-item>
+        </a-form>
       </a-tab-pane>
     </a-tabs>
   </layout>
@@ -60,36 +117,75 @@ export default {
   },
   data () {
     return {
-      form: this.$form.createForm(this, { name: 'trade' })
+      formTo: this.$form.createForm(this, { name: 'tradeTo' }),
+      formFrom: this.$form.createForm(this, { name: 'tradeFrom' }),
+      fromBalance: -1
     }
   },
   methods: {
-    onTransToAddr (e) {
-      e.preventDefault()
-      this.form.validateFields(async (err, values) => {
-        if (!err) {
-          console.log('Received values of form: ', values)
-
-          const value = '0x' + parseInt(values.amount).toString(16)
-          const gas = await utils.reqChain('eth_estimateGas', [{
-            from: this.$store.state.coinbase.value,
-            to: values.toAddr,
-            value
-          }])
-          const txHash = await utils.reqChain('eth_sendTransaction', [{
-            from: this.$store.state.coinbase.value,
-            to: values.toAddr,
-            gas,
-            value
-          }])
-          console.log(txHash)
+    async _transfer (from, to, amount, passwd = '') {
+      const value = utils.fromWei(amount)
+      if (from !== this.$store.state.coinbase.value) {
+        const unlocked = await utils.reqChain('personal_unlockAccount', [
+          from, passwd
+        ])
+        if (!unlocked) {
+          return ''
         }
+      }
+      const gas = await utils.reqChain('eth_estimateGas', [{
+        from, to, value
+      }])
+      console.log(from, to, gas, value)
+      const txHash = await utils.reqChain('eth_sendTransaction', [{
+        from, to, gas, value
+      }])
+      return txHash
+    },
+    onTransToSubmit (e) {
+      e.preventDefault()
+      this.formTo.validateFields(async (err, values) => {
+        if (err) {
+          return
+        }
+        const txHash = await this._transfer(
+          this.$store.state.coinbase.value,
+          values.toAddr, values.amountTo
+        )
+        console.log(txHash)
+      })
+    },
+    onTransFromSubmit (e) {
+      e.preventDefault()
+      this.formFrom.validateFields(async (err, values) => {
+        if (err) {
+          return
+        }
+        const txHash = await this._transfer(
+          values.fromAddr, values.toAddr,
+          values.amountFrom, values.passwd
+        )
+        if (txHash === '') {
+          console.log('账户密码错误！')
+        }
+        console.log(txHash)
       })
     },
     async onMineClicked () {
       const mining = this.$store.state.mining.value
       await utils.reqChain(`miner_${mining ? 'stop' : 'start'}`)
       this.$store.commit('updMining')
+    },
+    onFromAddrChanged (argus) {
+      for (let acc of this.$store.state.accounts.value) {
+        if (argus === acc.address) {
+          this.fromBalance = acc.balance
+          break
+        }
+      }
+    },
+    onAllBalanceClicked () {
+      this.formFrom.setFieldsValue({amountFrom: this.fromBalance})
     }
   }
 }
