@@ -22,164 +22,189 @@
         <a-descriptions-item label="算力">
           {{$store.state.hashrate.value}}
         </a-descriptions-item>
-        <a-descriptions-item label="基账户地址">
-          <div class="ant-list-item" style="padding: 0">
-            <div style="width: 50vw">
-              <p class="no-br">{{$store.state.coinbase.value}}</p>
-            </div>
-            <a-button type="link"><a-icon type="copy"/></a-button>
-          </div>
+      </a-descriptions>
+    </a-card>
+
+    <a-card class="mb-5" title="账户">
+      <a-button class="mb-5" type="primary" block @click="genAcc.shwDlg = true">
+        生成地址
+      </a-button>
+      <a-modal v-model="genAcc.shwDlg" title="生成地址" @ok="onGenAccount" :confirmLoading="genAcc.loading">
+        <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }">
+          <a-form-item label="账户密码"
+            :has-feedback="genAcc.passwdErr"
+            :validate-status="genAcc.passwdErr ? 'error' : ''"
+            :help="genAcc.passwdErr ? '账户密码不能为空' : ''">
+            <a-input v-model="genAcc.passwd" placeholder="输入新账户密码"/>
+          </a-form-item>
+        </a-form>
+      </a-modal>
+      <a-descriptions layout="vertical" size="small" bordered>
+        <a-descriptions-item label="基账户">
+          <lg-hash :hash="$store.state.coinbase.value" :width="85"/>
         </a-descriptions-item>
-        <a-descriptions-item>
-          <div slot="label">
-            <p class="mb-5">所有地址</p>
-            <a-button type="primary" size="small" @click="genAcc.shwDlg = true">
-              生成地址
-            </a-button>
-            <a-modal v-model="genAcc.shwDlg" title="生成地址" @ok="onGenAccount">
-              <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }">
-                <a-form-item label="账户密码"
-                  :has-feedback="genAcc.passwdErr"
-                  :validate-status="genAcc.passwdErr ? 'error' : ''"
-                  :help="genAcc.passwdErr ? '账户密码不能为空' : ''">
-                  <a-input v-model="genAcc.passwd" placeholder="输入新账户密码"/>
-                </a-form-item>
-              </a-form>
-            </a-modal>
+        <a-descriptions-item label="所有账户" style="text-align: left">
+          <div class="tx-list" style="height: 30vh">
+            <a-list item-layout="horizontal" :data-source="$store.state.accounts.value">
+              <a-list-item slot="renderItem" slot-scope="item, index">
+                <lg-hash :hash="item.address" :width="70"/>
+                <span style="width: 10vw; overflow-x: scroll">{{item.balance}}</span>
+              </a-list-item>
+            </a-list>
           </div>
-          <a-list item-layout="horizontal" :data-source="$store.state.accounts.value">
-            <a-list-item slot="renderItem" slot-scope="item, index">
-              <div style="width: 50vw">
-                <p class="no-br">{{item.address}}</p>
-              </div>
-              <a-button type="link"><a-icon type="copy"/></a-button>
-            </a-list-item>
-          </a-list>
         </a-descriptions-item>
       </a-descriptions>
     </a-card>
 
     <a-card class="mb-5" title="块信息">
       <a-input-search class="mb-10" placeholder="输入块哈希或块高" @search="onSearchBlock">
-        <a-button slot="enterButton" type="primary" :loading="block.searching">
+        <a-button slot="enterButton" type="primary">
           <a-icon type="search"/>
         </a-button>
       </a-input-search>
       <div style="height: 30vh; overflow-y: scroll">
         <a-list size="small" item-layout="horizontal" :data-source="$store.state.blocks.value">
-          <a slot="renderItem" slot-scope="item, index" @click="onBlockClicked(item)">
+          <a slot="renderItem" slot-scope="block, index"
+            @click="$router.push({path: `/eth-admin/detail?type=blkHash&q=${block.hash}`})"
+          >
             <a-list-item>
               <a-list-item-meta>
-                <div slot="description" style="width: 60vw">
-                  <p class="no-br">{{item.hash}}</p>
+                <div slot="description" style="width: 70vw">
+                  <p class="no-br">{{block.hash}}</p>
                 </div>
               </a-list-item-meta>
-              <div style="text-align: right">{{item.time}}</div>
+              <div style="text-align: right">{{block.time}}</div>
             </a-list-item>
           </a>
         </a-list>
       </div>
     </a-card>
 
-    <a-card class="mb-5" title="交易池">
+    <a-card title="交易池">
       <a-input-search class="mb-10" placeholder="输入交易哈希" @search="onSearchTx">
-        <a-button slot="enterButton" type="primary" :loading="tx.searching">
+        <a-button slot="enterButton" type="primary">
           <a-icon type="search"/>
         </a-button>
       </a-input-search>
-      <div style="height: 30vh; overflow-y: scroll">
-        <a-list size="small" item-layout="horizontal"
-          :data-source="Object.values($store.state.txpoolContent.value.pending)"
-        >
-          <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
-            <a-list-item>
-              <a-list-item-meta>
-                <div slot="description" style="width: 60vw">
-                  <p class="no-br">{{item.hash}}</p>
-                </div>
-              </a-list-item-meta>
-            </a-list-item>
-          </a>
-        </a-list>
-      </div>
+      <a-descriptions layout="vertical" size="small" bordered>
+        <a-descriptions-item label="等待中交易">
+          <div class="tx-list">
+            <a-list size="small" item-layout="horizontal"
+              :data-source="$store.state.txpoolContent.value.pending"
+            >
+              <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
+                <a-list-item>
+                  <a-list-item-meta>
+                    <div slot="description" style="width: 70vw">
+                      <p class="no-br">{{item.hash}}</p>
+                    </div>
+                  </a-list-item-meta>
+                  <div style="text-align: right">{{item.blockNumber || 0}}&nbsp;BLK</div>
+                </a-list-item>
+              </a>
+            </a-list>
+          </div>
+        </a-descriptions-item>
+        <a-descriptions-item label="排队中交易">
+          <div class="tx-list">
+            <a-list size="small" item-layout="horizontal"
+              :data-source="$store.state.txpoolContent.value.queued"
+            >
+              <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
+                <a-list-item>
+                  <a-list-item-meta>
+                    <div slot="description" style="width: 70vw">
+                      <p class="no-br">{{item.hash}}</p>
+                    </div>
+                  </a-list-item-meta>
+                  <div style="text-align: right">{{item.blockNumber || 0}}&nbsp;BLK</div>
+                </a-list-item>
+              </a>
+            </a-list>
+          </div>
+        </a-descriptions-item>
+      </a-descriptions>
     </a-card>
   </layout>
 </template>
 
 <script>
 import layout from '../common/layout.vue'
+import lgHash from '../common/lgHash.vue'
 import utils from '../utils'
 export default {
   components: {
-    layout
+    layout,
+    'lg-hash': lgHash
   },
   data () {
     return {
-      block: {
-        select: null,
-        searching: false
-      },
-      tx: {
-        searching: false
-      },
       genAcc: {
         shwDlg: false,
         passwd: '',
-        passwdErr: false
+        passwdErr: false,
+        loading: false
       }
     }
   },
   created () {
-
+    this.$store.commit({
+      type: 'setCurrentVue',
+      instance: this
+    })
   },
   methods: {
     async onMineChanged (argus) {
       await utils.reqChain(`miner_${argus ? 'start' : 'stop'}`)
     },
-    async onSearchBlock (argus) {
-      this.block.searching = true
-      const blockId = parseInt(argus)
-      let block = null
-      if (isNaN(blockId)) {
-        block = await utils.reqChain('eth_getBlockByHash', [blockId, true])
+    onSearchBlock (argus) {
+      const blkHeight = parseInt(argus)
+      if (isNaN(blkHeight)) {
+        this.$router.push({path: `/eth-admin/detail?type=blkHash&q=${argus}`})
       } else {
-        block = await utils.reqChain('eth_getBlockByNumber', [
-          '0x' + blockId.toString(16), true
-        ])
+        this.$router.push({path: `/eth-admin/detail?type=blhHeight&q=${utils.fromWei(blkHeight, false)}`})
       }
-      console.log(block)
-      this.block.searching = false
     },
     onSearchTx (argus) {
-      console.log(argus)
-    },
-    onBlockClicked (block) {
-      console.log(block)
+      this.$router.push({path: `/eth-admin/detail?type=txHash&q=${argus}`})
     },
     onTxClicked (tx) {
-      console.log(tx)
+      this.$router.push({path: `/eth-admin/detail?type=txHash&q=${tx.hash}`})
     },
     async onGenAccount () {
       if (!this.genAcc.passwd) {
         this.genAcc.passwdErr = true
         return
       }
+      this.genAcc.loading = true
       const newAddr = await utils.reqChain('personal_newAccount', [
         this.genAcc.passwd
       ])
+      this.genAcc.loading = false
+      this.genAcc.shwDlg = false
       if (!newAddr) {
         this.$message.error('生成地址失败！')
       } else {
         this.$message.success(`生成地址成功！${newAddr}`)
       }
-      this.genAcc.passwdErr = false
     }
   }
 }
 </script>
 
 <style>
-.chain-info .ant-card-body {
+.ant-card-body {
   padding: 15px 10px !important;
+}
+
+.tx-list {
+  width: 100%;
+  height: 15vh;
+  overflow-y: scroll
+}
+
+.ant-descriptions-item-content {
+  width: 100%;
+  padding: 0 10px !important;
 }
 </style>

@@ -2,7 +2,7 @@
   <layout actTab="trade">
     <a-tabs default-active-key="b2c" style="height: 100%; background-color: white">
       <a-tab-pane key="b2c" tab="基账户转账" style="padding: 15px 10px">
-        <a-form :form="formTo" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransToSubmit">
+        <a-form :form="to.form" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransToSubmit">
           <a-form-item label="基账户余额">
             <a-input-search
               :value="$store.state.cbBalance.value"
@@ -41,14 +41,14 @@
             />
           </a-form-item>
           <a-form-item :wrapper-col="{ span: 12, offset: 5 }">
-            <a-button type="primary" html-type="submit">
+            <a-button type="primary" html-type="submit" :loading="to.loading">
               转账
             </a-button>
           </a-form-item>
         </a-form>
       </a-tab-pane>
       <a-tab-pane key="c2c" tab="点对点转账" force-render style="padding: 15px 10px">
-        <a-form :form="formFrom" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransFromSubmit">
+        <a-form :form="from.form" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="onTransFromSubmit">
           <a-form-item label="源地址">
             <a-select
               v-decorator="[
@@ -85,7 +85,7 @@
               </a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item :label="`交易金额${fromBalance !== -1 ? '（可用余额：' + fromBalance + '）' : ''}`">
+          <a-form-item :label="`交易金额${from.balance !== -1 ? '（可用余额：' + from.balance + '）' : ''}`">
             <a-input-search
               v-decorator="['amountFrom', { rules: [{ required: true, message: '必须输入金额!' }] }]"
               placeholder="输入交易金额"
@@ -98,7 +98,7 @@
             </a-input-search>
           </a-form-item>
           <a-form-item :wrapper-col="{ span: 12, offset: 5 }">
-            <a-button type="primary" html-type="submit">
+            <a-button type="primary" html-type="submit" :loading="from.loading">
               转账
             </a-button>
           </a-form-item>
@@ -117,10 +117,22 @@ export default {
   },
   data () {
     return {
-      formTo: this.$form.createForm(this, { name: 'tradeTo' }),
-      formFrom: this.$form.createForm(this, { name: 'tradeFrom' }),
-      fromBalance: -1
+      to: {
+        form: this.$form.createForm(this, { name: 'tradeTo' }),
+        loading: false
+      },
+      from: {
+        form: this.$form.createForm(this, { name: 'tradeFrom' }),
+        balance: -1,
+        loading: false
+      }
     }
+  },
+  created () {
+    this.$store.commit({
+      type: 'setCurrentVue',
+      instance: this
+    })
   },
   methods: {
     async _transfer (from, to, amount, passwd = '') {
@@ -130,45 +142,49 @@ export default {
           from, passwd
         ])
         if (!unlocked) {
-          return ''
+          return Promise.resolve('')
         }
       }
       const gas = await utils.reqChain('eth_estimateGas', [{
         from, to, value
       }])
-      console.log(from, to, gas, value)
       const txHash = await utils.reqChain('eth_sendTransaction', [{
         from, to, gas, value
       }])
-      return txHash
+      return Promise.resolve(txHash)
     },
     onTransToSubmit (e) {
       e.preventDefault()
-      this.formTo.validateFields(async (err, values) => {
+      this.to.form.validateFields(async (err, values) => {
         if (err) {
           return
         }
+        this.to.loading = true
         const txHash = await this._transfer(
           this.$store.state.coinbase.value,
           values.toAddr, values.amountTo
         )
-        console.log(txHash)
+        this.to.loading = false
+        this.$router.push({
+          path: `/eth-admin/result?txHash=${txHash}`
+        })
       })
     },
     onTransFromSubmit (e) {
       e.preventDefault()
-      this.formFrom.validateFields(async (err, values) => {
+      this.from.form.validateFields(async (err, values) => {
         if (err) {
           return
         }
+        this.from.loading = true
         const txHash = await this._transfer(
           values.fromAddr, values.toAddr,
           values.amountFrom, values.passwd
         )
-        if (txHash === '') {
-          console.log('账户密码错误！')
-        }
-        console.log(txHash)
+        this.from.loading = false
+        this.$router.push({
+          path: `/eth-admin/result?txHash=${txHash}`
+        })
       })
     },
     async onMineClicked () {
@@ -179,13 +195,13 @@ export default {
     onFromAddrChanged (argus) {
       for (let acc of this.$store.state.accounts.value) {
         if (argus === acc.address) {
-          this.fromBalance = acc.balance
+          this.from.balance = acc.balance
           break
         }
       }
     },
     onAllBalanceClicked () {
-      this.formFrom.setFieldsValue({amountFrom: this.fromBalance})
+      this.from.form.setFieldsValue({amountFrom: this.from.balance})
     }
   }
 }

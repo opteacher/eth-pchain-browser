@@ -1,7 +1,7 @@
 <template>
-  <a-layout class="h-100">
+  <a-layout class="h-100 mt-60">
     <a-layout-content class="main-container">
-      <slot/>
+      <slot/><sync-btn/>
     </a-layout-content>
     <a-layout-footer class="btm-tabbar">
       <a-button
@@ -17,7 +17,11 @@
 </template>
 
 <script>
+import syncBtn from './syncBtn.vue'
 export default {
+  components: {
+    'sync-btn': syncBtn
+  },
   props: {
     actTab: {
       type: String,
@@ -31,11 +35,6 @@ export default {
         name: '首页',
         icon: 'home',
         href: '/eth-admin/home'
-      }, {
-        id: 'detail',
-        name: '详情',
-        icon: 'profile',
-        href: '/eth-admin/detail'
       }, {
         id: 'trade',
         name: '交易',

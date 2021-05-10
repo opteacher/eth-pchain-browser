@@ -1,4 +1,5 @@
 import axios from 'axios'
+import global from './store'
 
 axios.defaults.baseURL = '/chain' // 开发本地代理
 axios.defaults.headers.post['Contenst-Type'] = 'application/json;'
@@ -11,8 +12,12 @@ export default {
       params,
       jsonrpc: '2.0'
     })
-    if (!resp.data) {
-      console.log(resp.error.message)
+    if (resp.data.result === undefined) {
+      global.store.state.curVue.$notification['error']({
+        duration: null,
+        message: '转账错误',
+        description: resp.data.error.message
+      })
       return null
     } else {
       return resp.data.result

@@ -1,14 +1,155 @@
 <template>
-  <layout actTab="detail">
-    <h1>ABCD</h1>
-  </layout>
+  <div>
+    <a-page-header
+      style="border: 1px solid rgb(235, 237, 240)"
+      title="详情页"
+      :sub-title="subTitle"
+      @back="$router.go(-1)"
+    />
+    <div class="info-panel">
+      <a-descriptions v-if="$route.query.type === 'txHash'" title="交易信息" bordered size="small">
+        <a-descriptions-item label="交易哈希">
+          <lg-hash :hash="$route.query.q" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="发送方">
+          <lg-hash :hash="$store.state.selection.value.transaction.from || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="接收方">
+          <lg-hash :hash="$store.state.selection.value.transaction.to || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="金额">
+          {{$store.state.selection.value.transaction.wvalue || 0}}&nbsp;ETH
+        </a-descriptions-item>
+        <a-descriptions-item label="gas费">
+          {{$store.state.selection.value.transaction.wgas || 0}}&nbsp;Satoshi
+        </a-descriptions-item>
+        <a-descriptions-item label="块高">
+          {{$store.state.selection.value.transaction.wblockNumber || 0}}
+        </a-descriptions-item>
+        <a-descriptions-item label="块哈希">
+          <lg-hash :hash="$store.state.selection.value.transaction.blockHash || 'pending'" :width="55"/>
+        </a-descriptions-item>
+      </a-descriptions>
+      <a-descriptions class="mb-5" title="块信息" bordered size="small"
+        v-if="$route.query.type === 'blkHash' || $route.query.type === 'blhHeight'"
+      >
+        <a-descriptions-item label="块哈希">
+          <lg-hash :hash="$store.state.selection.value.block.hash || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="块高">
+          {{$store.state.selection.value.block.wnumber || 0}}
+        </a-descriptions-item>
+        <a-descriptions-item label="父块哈希">
+          <lg-hash :hash="$store.state.selection.value.block.parentHash || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="pow哈希">
+          <lg-hash :hash="$store.state.selection.value.block.nonce || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="矿工地址">
+          <lg-hash :hash="$store.state.selection.value.block.miner || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="难度">
+          {{$store.state.selection.value.block.wdifficulty || 0}}
+        </a-descriptions-item>
+        <a-descriptions-item label="大小">
+          {{$store.state.selection.value.block.wsize || 0}}&nbsp;byte
+        </a-descriptions-item>
+        <a-descriptions-item label="总gas费">
+          {{$store.state.selection.value.block.wgasUsed || 0}}
+        </a-descriptions-item>
+        <a-descriptions-item label="生成时间">
+          {{$store.state.selection.value.block.time || '00:00:00'}}
+        </a-descriptions-item>
+      </a-descriptions>
+      <a-descriptions
+        v-if="$route.query.type === 'blkHash' || $route.query.type === 'blhHeight'"
+        layout="vertical" bordered size="small"
+      >
+        <a-descriptions-item label="块中交易">
+          <div class="tx-list">
+            <a-list size="small" item-layout="horizontal"
+              :data-source="$store.state.selection.value.block.transactions || []"
+            >
+              <a slot="renderItem" slot-scope="tx, index" @click="onTxClicked(tx.hash)">
+                <a-list-item>
+                  <a-list-item-meta>
+                    <div slot="description" style="width: 85vw">
+                      <p class="no-br">{{tx.hash}}</p>
+                    </div>
+                  </a-list-item-meta>
+                </a-list-item>
+              </a>
+            </a-list>
+          </div>
+        </a-descriptions-item>
+      </a-descriptions>
+    </div>
+    <sync-btn/>
+  </div>
 </template>
 
 <script>
-import layout from '../common/layout.vue'
+import lgHash from '../common/lgHash'
+import syncBtn from '../common/syncBtn'
 export default {
   components: {
-    layout
+    'lg-hash': lgHash,
+    'sync-btn': syncBtn
+  },
+  data () {
+    return {
+      subTitle: ''
+    }
+  },
+  created () {
+    this.$store.commit({
+      type: 'setCurrentVue',
+      instance: this
+    })
+
+    switch (this.$route.query.type) {
+      case 'txHash':
+        this.subTitle = '交易详情'
+        this.$store.commit({
+          type: 'setTransaction',
+          txHash: this.$route.query.q
+        })
+        break
+      case 'blkHash':
+        this.subTitle = '块详情'
+        this.$store.commit({
+          type: 'setBlockHash',
+          blockHash: this.$route.query.q
+        })
+        break
+      case 'blhHeight':
+        this.subTitle = '块详情'
+        this.$store.commit({
+          type: 'setBlockHeight',
+          blockHeight: this.$route.query.q
+        })
+        break
+      case 'address':
+        this.subTitle = '账户详情'
+        break
+    }
+  },
+  methods: {
+    onTxClicked (txHash) {
+      this.$router.push({path: `/eth-admin/detail?type=txHash&q=${txHash}`})
+      this.$store.commit({type: 'setTransaction', txHash})
+    }
   }
 }
 </script>
+
+<style>
+.info-panel {
+  width: 100%;
+  padding: 10px 5px !important;
+  position: absolute;
+  top: 67px;
+  bottom: 0;
+  overflow-y: scroll;
+}
+</style>

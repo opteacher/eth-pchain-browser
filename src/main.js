@@ -13,7 +13,7 @@ Vue.config.productionTip = false
 Vue.prototype.axios = Axios
 Vue.use(Antd)
 
-global.startJobs()
+global.store.commit('toggleSync')
 
 /* eslint-disable no-new */
 new Vue({

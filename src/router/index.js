@@ -3,6 +3,7 @@ import Router from 'vue-router'
 import Home from '@/pages/home'
 import Detail from '@/pages/detail'
 import Trade from '@/pages/trade'
+import Result from '@/pages/result'
 
 Vue.use(Router)
 
@@ -19,5 +20,8 @@ export default new Router({
   }, {
     path: '/eth-admin/trade',
     component: Trade
+  }, {
+    path: '/eth-admin/result',
+    component: Result
   }]
 })
