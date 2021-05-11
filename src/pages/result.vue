@@ -20,11 +20,11 @@
     </div>
     <template #extra>
       <a-button key="console" type="primary"  @click="$router.push({
-        path: `/eth-admin/detail?type=txHash&q=${$route.query.txHash}`
+        path: `/eth-pchain/detail?type=txHash&q=${$route.query.txHash}`
       })">
         查看交易详情
       </a-button>
-      <a-button key="buy" @click="$router.push({path: '/eth-admin/trade'})">
+      <a-button key="buy" @click="$router.push({path: '/eth-pchain/trade'})">
         再次发起转账
       </a-button>
     </template>

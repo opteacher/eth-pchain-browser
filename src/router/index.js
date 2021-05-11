@@ -10,18 +10,18 @@ Vue.use(Router)
 export default new Router({
   routes: [{
     path: '/',
-    redirect: '/eth-admin/home'
+    redirect: '/eth-pchain/home'
   }, {
-    path: '/eth-admin/home',
+    path: '/eth-pchain/home',
     component: Home
   }, {
-    path: '/eth-admin/detail',
+    path: '/eth-pchain/detail',
     component: Detail
   }, {
-    path: '/eth-admin/trade',
+    path: '/eth-pchain/trade',
     component: Trade
   }, {
-    path: '/eth-admin/result',
+    path: '/eth-pchain/result',
     component: Result
   }]
 })

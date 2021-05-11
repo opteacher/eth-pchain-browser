@@ -26,9 +26,15 @@
     </a-card>
 
     <a-card class="mb-5" title="账户">
-      <a-button class="mb-5" type="primary" block @click="genAcc.shwDlg = true">
-        生成地址
-      </a-button>
+      <a-input-group class="mb-5" compact>
+        <a-input style="width: 60%" v-model="genAcc.search" placeholder="输入账户地址"/>
+        <a-button style="width: 20%" type="primary" @click="onSearchAccount">
+          <a-icon type="search"/>
+        </a-button>
+        <a-button style="width: 20%" type="primary" @click="genAcc.shwDlg = true">
+          <a-icon type="plus"/>
+        </a-button>
+      </a-input-group>
       <a-modal v-model="genAcc.shwDlg" title="生成地址" @ok="onGenAccount" :confirmLoading="genAcc.loading">
         <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }">
           <a-form-item label="账户密码"
@@ -65,7 +71,7 @@
       <div style="height: 30vh; overflow-y: scroll">
         <a-list size="small" item-layout="horizontal" :data-source="$store.state.blocks.value">
           <a slot="renderItem" slot-scope="block, index"
-            @click="$router.push({path: `/eth-admin/detail?type=blkHash&q=${block.hash}`})"
+            @click="$router.push({path: `/eth-pchain/detail?type=blkHash&q=${block.hash}`})"
           >
             <a-list-item>
               <a-list-item-meta>
@@ -92,16 +98,7 @@
             <a-list size="small" item-layout="horizontal"
               :data-source="$store.state.txpoolContent.value.pending"
             >
-              <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
-                <a-list-item>
-                  <a-list-item-meta>
-                    <div slot="description" style="width: 70vw">
-                      <p class="no-br">{{item.hash}}</p>
-                    </div>
-                  </a-list-item-meta>
-                  <div style="text-align: right">{{item.blockNumber || 0}}&nbsp;BLK</div>
-                </a-list-item>
-              </a>
+              <lg-hash slot="renderItem" slot-scope="item, index" :hash="item.hash" :width="85"/>
             </a-list>
           </div>
         </a-descriptions-item>
@@ -110,16 +107,7 @@
             <a-list size="small" item-layout="horizontal"
               :data-source="$store.state.txpoolContent.value.queued"
             >
-              <a slot="renderItem" slot-scope="item, index" @click="onTxClicked(item)">
-                <a-list-item>
-                  <a-list-item-meta>
-                    <div slot="description" style="width: 70vw">
-                      <p class="no-br">{{item.hash}}</p>
-                    </div>
-                  </a-list-item-meta>
-                  <div style="text-align: right">{{item.blockNumber || 0}}&nbsp;BLK</div>
-                </a-list-item>
-              </a>
+              <lg-hash slot="renderItem" slot-scope="item, index" :hash="item.hash" :width="85"/>
             </a-list>
           </div>
         </a-descriptions-item>
@@ -140,6 +128,7 @@ export default {
   data () {
     return {
       genAcc: {
+        search: '',
         shwDlg: false,
         passwd: '',
         passwdErr: false,
@@ -160,16 +149,19 @@ export default {
     onSearchBlock (argus) {
       const blkHeight = parseInt(argus)
       if (isNaN(blkHeight)) {
-        this.$router.push({path: `/eth-admin/detail?type=blkHash&q=${argus}`})
+        this.$router.push({path: `/eth-pchain/detail?type=blkHash&q=${argus}`})
       } else {
-        this.$router.push({path: `/eth-admin/detail?type=blhHeight&q=${utils.fromWei(blkHeight, false)}`})
+        this.$router.push({path: `/eth-pchain/detail?type=blhHeight&q=${utils.fromWei(blkHeight, false)}`})
       }
     },
     onSearchTx (argus) {
-      this.$router.push({path: `/eth-admin/detail?type=txHash&q=${argus}`})
+      this.$router.push({path: `/eth-pchain/detail?type=txHash&q=${argus}`})
     },
     onTxClicked (tx) {
-      this.$router.push({path: `/eth-admin/detail?type=txHash&q=${tx.hash}`})
+      this.$router.push({path: `/eth-pchain/detail?type=txHash&q=${tx.hash}`})
+    },
+    onSearchAccount () {
+      this.$router.push({path: `/eth-pchain/detail?type=address&q=${this.genAcc.search}`})
     },
     async onGenAccount () {
       if (!this.genAcc.passwd) {

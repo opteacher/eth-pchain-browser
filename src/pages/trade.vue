@@ -166,7 +166,7 @@ export default {
         )
         this.to.loading = false
         this.$router.push({
-          path: `/eth-admin/result?txHash=${txHash}`
+          path: `/eth-pchain/result?txHash=${txHash}`
         })
       })
     },
@@ -183,7 +183,7 @@ export default {
         )
         this.from.loading = false
         this.$router.push({
-          path: `/eth-admin/result?txHash=${txHash}`
+          path: `/eth-pchain/result?txHash=${txHash}`
         })
       })
     },

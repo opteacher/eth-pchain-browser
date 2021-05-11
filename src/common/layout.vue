@@ -34,12 +34,12 @@ export default {
         id: 'home',
         name: '首页',
         icon: 'home',
-        href: '/eth-admin/home'
+        href: '/eth-pchain/home'
       }, {
         id: 'trade',
         name: '交易',
         icon: 'transaction',
-        href: '/eth-admin/trade'
+        href: '/eth-pchain/trade'
       }]
     }
   }

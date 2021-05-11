@@ -70,18 +70,7 @@ const store = new Vuex.Store({
     selection: {
       ctNum: 5,
       count: 0,
-      value: {
-        transaction: {
-          hash: ''
-        },
-        block: {
-          hash: '',
-          number: ''
-        },
-        account: {
-          address: ''
-        }
-      }
+      value: {}
     }
   },
   mutations: {
@@ -179,56 +168,66 @@ const store = new Vuex.Store({
       state.txpoolContent.value = {pending, queued}
     },
     setTransaction (state, payload) {
-      state.selection.value.transaction.hash = payload.txHash
+      state.selection.value = {
+        hash: payload.txHash
+      }
       this.commit('updSelection')
     },
     setBlockHash (state, payload) {
-      state.selection.value.block.hash = payload.blockHash
+      state.selection.value = {
+        hash: payload.blockHash,
+        number: ''
+      }
       this.commit('updSelection')
     },
     setBlockHeight (state, payload) {
-      state.selection.value.block.number = payload.blockHeight
+      state.selection.value = {
+        hash: '',
+        number: payload.blockHeight
+      }
       this.commit('updSelection')
     },
     setAccountAddr (state, payload) {
-      state.selection.value.account.address = payload.address
+      state.selection.value = {
+        address: payload.address
+      }
       this.commit('updSelection')
     },
     async updSelection (state) {
-      if (state.selection.value.transaction.hash) {
-        state.selection.value.transaction = await utils.reqChain('eth_getTransactionByHash', [
-          state.selection.value.transaction.hash
+      if (state.selection.value.hash && state.selection.value.number === undefined) {
+        state.selection.value = await utils.reqChain('eth_getTransactionByHash', [
+          state.selection.value.hash
         ])
-        state.selection.value.transaction.wvalue = utils.toWei(state.selection.value.transaction.value)
-        state.selection.value.transaction.wgas = utils.toWei(state.selection.value.transaction.gas, false)
-        state.selection.value.transaction.wblockNumber = utils.toWei(state.selection.value.transaction.blockNumber, false)
+        state.selection.value.wvalue = utils.toWei(state.selection.value.value)
+        state.selection.value.wgas = utils.toWei(state.selection.value.gas, false)
+        state.selection.value.wblockNumber = utils.toWei(state.selection.value.blockNumber, false)
       }
-      if (state.selection.value.block.hash) {
-        state.selection.value.block = await utils.reqChain('eth_getBlockByHash', [
-          state.selection.value.block.hash, true
+      if (state.selection.value.hash && state.selection.value.number === '') {
+        state.selection.value = await utils.reqChain('eth_getBlockByHash', [
+          state.selection.value.hash, true
         ])
-      } else if (state.selection.value.block.number) {
-        state.selection.value.block = await utils.reqChain('eth_getBlockByNumber', [
-          state.selection.value.block.number, true
+      } else if (state.selection.value.number && state.selection.value.hash === '') {
+        state.selection.value = await utils.reqChain('eth_getBlockByNumber', [
+          state.selection.value.number, true
         ])
       }
-      if (state.selection.value.block.hash || state.selection.value.block.number) {
-        state.selection.value.block.wnumber = utils.toWei(state.selection.value.block.number, false)
-        state.selection.value.block.wdifficulty = utils.toWei(state.selection.value.block.difficulty, false)
-        state.selection.value.block.wsize = utils.toWei(state.selection.value.block.size, false)
-        state.selection.value.block.wgasUsed = utils.toWei(state.selection.value.block.gasUsed, false)
-        const dt = new Date(utils.toWei(state.selection.value.block.timestamp, false))
-        state.selection.value.block.time = [
+      if (state.selection.value.hash || state.selection.value.number) {
+        state.selection.value.wnumber = utils.toWei(state.selection.value.number, false)
+        state.selection.value.wdifficulty = utils.toWei(state.selection.value.difficulty, false)
+        state.selection.value.wsize = utils.toWei(state.selection.value.size, false)
+        state.selection.value.wgasUsed = utils.toWei(state.selection.value.gasUsed, false)
+        const dt = new Date(utils.toWei(state.selection.value.timestamp, false))
+        state.selection.value.time = [
           dt.getHours().toString().padStart(2, '0'),
           dt.getMinutes().toString().padStart(2, '0'),
           dt.getSeconds().toString().padStart(2, '0')
         ].join(':')
       }
-      if (state.selection.value.account.address) {
+      if (state.selection.value.address) {
         const result = await utils.reqChain('eth_getBalance', [
-          state.selection.value.account.address, 'latest'
+          state.selection.value.address, 'latest'
         ])
-        state.selection.value.account.balance = utils.toWei(result)
+        state.selection.value.wbalance = utils.toWei(result)
       }
     }
   }

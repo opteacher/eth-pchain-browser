@@ -4,7 +4,7 @@
       <p class="long-hash">{{hash}}</p>
     </a-col>
     <a-col :span="2">
-      <a-button class="p-0" type="link">
+      <a-button class="p-0" type="link" @click="copyToClip">
         <a-icon type="copy"/>
       </a-button>
     </a-col>
@@ -19,6 +19,17 @@ export default {
       default: 30
     },
     hash: String
+  },
+  methods: {
+    copyToClip () {
+      let aux = document.createElement('input')
+      aux.setAttribute('value', this.hash)
+      document.body.appendChild(aux)
+      aux.select()
+      document.execCommand('copy')
+      document.body.removeChild(aux)
+      this.$message.success('已复制到剪切板！')
+    }
   }
 }
 </script>

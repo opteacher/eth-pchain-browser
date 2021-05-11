@@ -1,4 +1,4 @@
-# eth-admin
+# eth-pchain
 
 > A Vue.js project
 
