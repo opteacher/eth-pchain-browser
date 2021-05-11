@@ -40,6 +40,11 @@ export default {
         name: '交易',
         icon: 'transaction',
         href: '/eth-pchain/trade'
+      }, {
+        id: 'solidity',
+        name: '智能合约',
+        icon: 'profile',
+        href: '/eth-pchain/solidity'
       }]
     }
   }

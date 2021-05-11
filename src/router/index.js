@@ -4,6 +4,7 @@ import Home from '@/pages/home'
 import Detail from '@/pages/detail'
 import Trade from '@/pages/trade'
 import Result from '@/pages/result'
+import Solidity from '@/pages/solidity'
 
 Vue.use(Router)
 
@@ -23,5 +24,8 @@ export default new Router({
   }, {
     path: '/eth-pchain/result',
     component: Result
+  }, {
+    path: '/eth-pchain/solidity',
+    component: Solidity
   }]
 })
