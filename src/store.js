@@ -4,6 +4,12 @@ import utils from './utils'
 
 Vue.use(Vuex)
 
+function setState (key) {
+  return function (state, payload) {
+    state[key].value = payload[key]
+  }
+}
+
 const store = new Vuex.Store({
   state: {
     curVue: null,
@@ -23,6 +29,11 @@ const store = new Vuex.Store({
     },
     gasPrice: {
       ctNum: 60,
+      count: 0,
+      value: 0
+    },
+    gasLimit: {
+      ctNum: 3600,
       count: 0,
       value: 0
     },
@@ -67,17 +78,33 @@ const store = new Vuex.Store({
         queued: []
       }
     },
-    selection: {
-      ctNum: 5,
+    selTx: {
+      ctNum: 10,
+      count: 0,
+      value: {}
+    },
+    selBlock: {
+      ctNum: 10,
+      count: 0,
+      value: {}
+    },
+    selAccount: {
+      ctNum: 10,
       count: 0,
       value: {}
     }
   },
   mutations: {
-    setCurrentVue (state, payload) {
+    INCREMENT (state, payload) {
+      state[payload.key].count++
+    },
+    CLEAR_COUNT (state, payload) {
+      state[payload.key].count = 0
+    },
+    SET_CURRENT_VUE (state, payload) {
       state.curVue = payload.instance
     },
-    toggleSync (state) {
+    TOGGLE_SYNC (state) {
       state.syncing.value = !state.syncing.value
       if (state.syncing.value) {
         state.syncing.handler = startJobs()
@@ -86,66 +113,104 @@ const store = new Vuex.Store({
         state.syncing.handler = null
       }
     },
-    async updBlockId (state) {
+    SET_BLOCK_ID: setState('blockId'),
+    SET_BLOCK_NUMBER: setState('blockNumber'),
+    SET_GAS_PRICE: setState('gasPrice'),
+    SET_GAS_LIMIT: setState('gasLimit'),
+    SET_BLOCKS: setState('blocks'),
+    SET_MINING: setState('mining'),
+    SET_PEER_COUNT: setState('peerCount'),
+    SET_COINBASE: setState('coinbase'),
+    SET_CB_BALANCE: setState('cbBalance'),
+    SET_HASH_RATE: setState('hashrate'),
+    SET_ACCOUNTS: setState('accounts'),
+    SET_TXPOOL_CONTENT: setState('txpoolContent'),
+    SET_SEL_TX: setState('selTx'),
+    SET_SEL_BLOCK: setState('selBlock'),
+    SET_SEL_ACCOUNT: setState('selAccount')
+  },
+  actions: {
+    async updBlockId (context) {
       const result = await utils.reqChain('eth_chainId') || '0x0'
-      state.blockId.value = utils.toWei(result, false)
+      context.commit('SET_BLOCK_ID', {
+        blockId: utils.toNum(result, false)
+      })
     },
-    async updBlockNumber (state) {
+    async updBlockNumber (context) {
       const result = await utils.reqChain('eth_blockNumber') || '0x0'
-      state.blockNumber.value = utils.toWei(result, false)
+      context.commit('SET_BLOCK_NUMBER', {
+        blockNumber: utils.toNum(result, false)
+      })
     },
-    async updGasPrice (state) {
+    async updGasPrice (context) {
       const result = await utils.reqChain('eth_gasPrice') || '0x0'
-      state.gasPrice.value = utils.toWei(result, false)
+      context.commit('SET_GAS_PRICE', {
+        gasPrice: utils.toNum(result, false)
+      })
     },
-    async updBlocks (state) {
-      state.blocks.value = []
-      for (let i = state.blockNumber.value, j = 0; i > 0 && j <= 10; i--, j++) {
+    async updGasLimit (context) {
+      const url = '/eth-pchain/api/v1/transaction/gasLimit'
+      const result = await utils.reqBackend(url, 'get')
+      context.commit('SET_GAS_LIMIT', result)
+    },
+    async updBlocks (context) {
+      const blocks = []
+      for (let i = this.state.blockNumber.value, j = 0; i > 0 && j <= 10; i--, j++) {
         const result = await utils.reqChain('eth_getBlockByNumber', [
-          utils.fromWei(i, false), false
+          utils.toHex(i, false), false
         ])
-        const dt = new Date(utils.toWei(result.timestamp, false))
+        const dt = new Date(utils.toNum(result.timestamp, false))
         result.time = [
           dt.getHours().toString().padStart(2, '0'),
           dt.getMinutes().toString().padStart(2, '0'),
           dt.getSeconds().toString().padStart(2, '0')
         ].join(':')
-        state.blocks.value.push(result)
+        blocks.push(result)
       }
+      context.commit('SET_BLOCKS', {blocks})
     },
-    async updMining (state) {
+    async updMining (context) {
       const result = await utils.reqChain('eth_mining')
-      state.mining.value = Boolean(result)
+      context.commit('SET_MINING', {
+        mining: Boolean(result)
+      })
     },
-    async updPeerCount (state) {
+    async updPeerCount (context) {
       const result = await utils.reqChain('net_peerCount')
-      state.peerCount.value = utils.toWei(result, false)
+      context.commit('SET_PEER_COUNT', {
+        peerCount: utils.toNum(result, false)
+      })
     },
-    async updCoinbase (state) {
-      let result = await utils.reqChain('eth_coinbase')
-      state.coinbase.value = result
-      result = await utils.reqChain('eth_getBalance', [
-        state.coinbase.value, 'latest'
+    async updCoinbase (context) {
+      const coinbase = await utils.reqChain('eth_coinbase')
+      context.commit('SET_COINBASE', {coinbase})
+      const balance = await utils.reqChain('eth_getBalance', [
+        coinbase, 'latest'
       ])
-      state.cbBalance.value = utils.toWei(result)
+      context.commit('SET_CB_BALANCE', {
+        cbBalance: utils.toNum(balance)
+      })
     },
-    async updHashrate (state) {
+    async updHashrate (context) {
       const result = await utils.reqChain('eth_hashrate')
-      state.hashrate.value = utils.toWei(result, false)
+      context.commit('SET_HASH_RATE', {
+        hashrate: utils.toNum(result, false)
+      })
     },
-    async updAccounts (state) {
+    async updAccounts (context) {
       const result = await utils.reqChain('eth_accounts')
-      state.accounts.value = []
+      const accounts = []
       for (let address of result) {
-        const sbalance = await utils.reqChain('eth_getBalance', [
+        const balance = await utils.reqChain('eth_getBalance', [
           address, 'latest'
         ])
-        state.accounts.value.push({
-          address, balance: utils.toWei(sbalance)
+        accounts.push({
+          address, balance: utils.toNum(balance)
         })
       }
+      context.commit('SET_ACCOUNTS', {accounts})
     },
-    async updTxpoolContent (state) {
+    async updTxpoolContent (context) {
       const result = await utils.reqChain('txpool_content')
       const pcsRes = data => {
         let array = Object.values(data)
@@ -156,8 +221,7 @@ const store = new Vuex.Store({
         for (const item of array) {
           for (const [index, tx] of Object.entries(item)) {
             result = result.concat(Object.assign(tx, {
-              index,
-              weiVal: utils.toWei(tx.value)
+              index, nvalue: utils.toNum(tx.value)
             }))
           }
         }
@@ -165,106 +229,126 @@ const store = new Vuex.Store({
       }
       const pending = pcsRes(result.pending)
       const queued = pcsRes(result.queued)
-      state.txpoolContent.value = {pending, queued}
+      context.commit('SET_TXPOOL_CONTENT', {
+        txpoolContent: {pending, queued}
+      })
     },
-    setTransaction (state, payload) {
-      state.selection.value = {
-        hash: payload.txHash
+    async updSelTx (context, payload) {
+      let txHash = ''
+      if (payload && payload.txHash) {
+        txHash = payload.txHash
+      } else if (this.state.selTx.value.hash) {
+        txHash = this.state.selTx.value.hash
+      } else {
+        return
       }
-      this.commit('updSelection')
-    },
-    setBlockHash (state, payload) {
-      state.selection.value = {
-        hash: payload.blockHash,
-        number: ''
+      if (payload && payload.clearOthers) {
+        this.state.selBlock.value = {}
+        this.state.selAccount.value = {}
       }
-      this.commit('updSelection')
-    },
-    setBlockHeight (state, payload) {
-      state.selection.value = {
-        hash: '',
-        number: payload.blockHeight
+      const selTx = await utils.reqChain('eth_getTransactionByHash', [txHash])
+      selTx.nvalue = utils.toNum(selTx.value)
+      selTx.ngas = utils.toNum(selTx.gas, false)
+      selTx.nblockNumber = utils.toNum(selTx.blockNumber, false)
+      const txReceipt = await utils.reqChain('eth_getTransactionReceipt', [txHash])
+      if (txReceipt.contractAddress) {
+        selTx.contractAddress = txReceipt.contractAddress
       }
-      this.commit('updSelection')
+      context.commit('SET_SEL_TX', {selTx})
     },
-    setAccountAddr (state, payload) {
-      state.selection.value = {
-        address: payload.address
-      }
-      this.commit('updSelection')
-    },
-    async updSelection (state) {
-      if (state.selection.value.hash && state.selection.value.number === undefined) {
-        state.selection.value = await utils.reqChain('eth_getTransactionByHash', [
-          state.selection.value.hash
+    async updSelBlock (context, payload) {
+      let selBlock = {}
+      if (payload) {
+        if (payload.blkHash) {
+          selBlock = await utils.reqChain('eth_getBlockByHash', [
+            payload.blkHash, true
+          ])
+        } else if (payload.blkNumber) {
+          selBlock = await utils.reqChain('eth_getBlockByNumber', [
+            payload.blkNumber, true
+          ])
+        }
+      } else if (this.state.selBlock.value.hash) {
+        selBlock = await utils.reqChain('eth_getBlockByHash', [
+          this.state.selBlock.value.hash, true
         ])
-        state.selection.value.wvalue = utils.toWei(state.selection.value.value)
-        state.selection.value.wgas = utils.toWei(state.selection.value.gas, false)
-        state.selection.value.wblockNumber = utils.toWei(state.selection.value.blockNumber, false)
+      } else {
+        return
       }
-      if (state.selection.value.hash && state.selection.value.number === '') {
-        state.selection.value = await utils.reqChain('eth_getBlockByHash', [
-          state.selection.value.hash, true
-        ])
-      } else if (state.selection.value.number && state.selection.value.hash === '') {
-        state.selection.value = await utils.reqChain('eth_getBlockByNumber', [
-          state.selection.value.number, true
-        ])
+      if (payload && payload.clearOthers) {
+        this.state.selTx.value = {}
+        this.state.selAccount.value = {}
       }
-      if (state.selection.value.hash || state.selection.value.number) {
-        state.selection.value.wnumber = utils.toWei(state.selection.value.number, false)
-        state.selection.value.wdifficulty = utils.toWei(state.selection.value.difficulty, false)
-        state.selection.value.wsize = utils.toWei(state.selection.value.size, false)
-        state.selection.value.wgasUsed = utils.toWei(state.selection.value.gasUsed, false)
-        const dt = new Date(utils.toWei(state.selection.value.timestamp, false))
-        state.selection.value.time = [
-          dt.getHours().toString().padStart(2, '0'),
-          dt.getMinutes().toString().padStart(2, '0'),
-          dt.getSeconds().toString().padStart(2, '0')
-        ].join(':')
+      selBlock.nnumber = utils.toNum(selBlock.number, false)
+      selBlock.ndifficulty = utils.toNum(selBlock.difficulty, false)
+      selBlock.nsize = utils.toNum(selBlock.size, false)
+      selBlock.ngasUsed = utils.toNum(selBlock.gasUsed, false)
+      const dt = new Date(utils.toNum(selBlock.timestamp, false))
+      selBlock.time = [
+        dt.getHours().toString().padStart(2, '0'),
+        dt.getMinutes().toString().padStart(2, '0'),
+        dt.getSeconds().toString().padStart(2, '0')
+      ].join(':')
+      context.commit('SET_SEL_BLOCK', {selBlock})
+    },
+    async updSelAccount (context, payload) {
+      let address = ''
+      if (payload && payload.address) {
+        address = payload.address
+      } else if (this.state.selAccount.value.address) {
+        address = this.state.selAccount.value.address
+      } else {
+        return
       }
-      if (state.selection.value.address) {
-        const result = await utils.reqChain('eth_getBalance', [
-          state.selection.value.address, 'latest'
-        ])
-        state.selection.value.wbalance = utils.toWei(result)
+      if (payload && payload.clearOthers) {
+        this.state.selTx.value = {}
+        this.state.selBlock.value = {}
       }
+      const result = await utils.reqChain('eth_getBalance', [address, 'latest'])
+      context.commit('SET_SEL_ACCOUNT', {
+        selAccount: {
+          address, nbalance: utils.toNum(result)
+        }
+      })
     }
   }
 })
 
-function commitByConds (sttNam, updFun, cmtImd) {
+function refresh (sttNam, updFun, cmtImd) {
   if (cmtImd) {
-    store.commit(updFun)
+    store.dispatch(updFun)
     return
   }
   const state = store.state[sttNam]
   if (state.count === state.ctNum) {
-    state.count = 0
-    store.commit(updFun)
+    store.commit('CLEAR_COUNT', {key: sttNam})
+    store.dispatch(updFun)
   }
-  state.count++
+  store.commit('INCREMENT', {key: sttNam})
 }
 
-function commitAll (cmdImd = false) {
-  commitByConds('blockId', 'updBlockId', cmdImd)
-  commitByConds('blockNumber', 'updBlockNumber', cmdImd)
-  commitByConds('gasPrice', 'updGasPrice', cmdImd)
+function refreshAll (cmtImd = false) {
+  refresh('blockId', 'updBlockId', cmtImd)
+  refresh('blockNumber', 'updBlockNumber', cmtImd)
+  refresh('gasPrice', 'updGasPrice', cmtImd)
+  refresh('gasLimit', 'updGasLimit', cmtImd)
   setTimeout(() => {
-    commitByConds('blocks', 'updBlocks', cmdImd)
+    refresh('blocks', 'updBlocks', cmtImd)
   }, 1000)
-  commitByConds('mining', 'updMining', cmdImd)
-  commitByConds('peerCount', 'updPeerCount', cmdImd)
-  commitByConds('coinbase', 'updCoinbase', cmdImd)
-  commitByConds('hashrate', 'updHashrate', cmdImd)
-  commitByConds('accounts', 'updAccounts', cmdImd)
-  commitByConds('txpoolContent', 'updTxpoolContent', cmdImd)
-  commitByConds('selection', 'updSelection', cmdImd)
+  refresh('mining', 'updMining', cmtImd)
+  refresh('peerCount', 'updPeerCount', cmtImd)
+  refresh('coinbase', 'updCoinbase', cmtImd)
+  refresh('hashrate', 'updHashrate', cmtImd)
+  refresh('accounts', 'updAccounts', cmtImd)
+  refresh('txpoolContent', 'updTxpoolContent', cmtImd)
+  refresh('selTx', 'updSelTx', cmtImd)
+  refresh('selBlock', 'updSelBlock', cmtImd)
+  refresh('selAccount', 'updSelAccount', cmtImd)
 }
 
 function startJobs () {
-  commitAll(true)
-  return setInterval(commitAll, 1000)
+  refreshAll(true)
+  return setInterval(refreshAll, 1000)
 }
 
 export default {

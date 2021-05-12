@@ -130,13 +130,13 @@ export default {
   },
   created () {
     this.$store.commit({
-      type: 'setCurrentVue',
+      type: 'SET_CURRENT_VUE',
       instance: this
     })
   },
   methods: {
     async _transfer (from, to, amount, passwd = '') {
-      const value = utils.fromWei(amount)
+      const value = utils.toHex(amount)
       if (from !== this.$store.state.coinbase.value) {
         const unlocked = await utils.reqChain('personal_unlockAccount', [
           from, passwd

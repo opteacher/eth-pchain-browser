@@ -138,7 +138,7 @@ export default {
   },
   created () {
     this.$store.commit({
-      type: 'setCurrentVue',
+      type: 'SET_CURRENT_VUE',
       instance: this
     })
   },
@@ -151,7 +151,7 @@ export default {
       if (isNaN(blkHeight)) {
         this.$router.push({path: `/eth-pchain/detail?type=blkHash&q=${argus}`})
       } else {
-        this.$router.push({path: `/eth-pchain/detail?type=blhHeight&q=${utils.fromWei(blkHeight, false)}`})
+        this.$router.push({path: `/eth-pchain/detail?type=blhHeight&q=${utils.toHex(blkHeight, false)}`})
       }
     },
     onSearchTx (argus) {

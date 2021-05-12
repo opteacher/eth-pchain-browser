@@ -4,7 +4,7 @@
     :type="$store.state.syncing.value ? 'primary' : 'default'"
     shape="circle"
     size="large"
-    @click="$store.commit('toggleSync')"
+    @click="$store.commit('TOGGLE_SYNC')"
   >
     <a-icon type="sync" :spin="$store.state.syncing.value"/>
   </a-button>

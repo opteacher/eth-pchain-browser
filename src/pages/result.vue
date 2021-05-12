@@ -7,14 +7,10 @@
       <p class="mb-0">交易哈希为</p>
       <a-row>
         <a-col :span="22">
-          <p class="long-hash">
-            {{$route.query.txHash}}
-          </p>
+          <p class="long-hash">{{$route.query.txHash}}</p>
         </a-col>
         <a-col :span="2">
-          <a-button class="p-0" type="link">
-            <a-icon type="copy"/>
-          </a-button>
+          <a-button class="p-0" type="link"><a-icon type="copy"/></a-button>
         </a-col>
       </a-row>
     </div>
@@ -35,7 +31,7 @@
 export default {
   created () {
     this.$store.commit({
-      type: 'setCurrentVue',
+      type: 'SET_CURRENT_VUE',
       instance: this
     })
   }

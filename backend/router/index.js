@@ -1,8 +1,15 @@
 const fs = require('fs')
 const path = require('path')
 const router = require('koa-router')()
+const Web3 = require('web3')
 
 const scanPath = require('../utils/tools').scanPath
+
+// 设置全局变量
+router.use(async (ctx, next) => {
+  ctx.state.web3 = new Web3('ws://localhost:8546')
+  await next()
+})
 
 // @block{userRoutes}:用户自定义路由
 // @includes:path/../
