@@ -104,6 +104,8 @@
           </a-form-item>
         </a-form>
       </a-tab-pane>
+      <a-tab-pane key="c2s" tab="智能合约" style="padding: 15px 10px">
+      </a-tab-pane>
     </a-tabs>
   </layout>
 </template>

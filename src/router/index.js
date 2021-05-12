@@ -5,6 +5,7 @@ import Detail from '@/pages/detail'
 import Trade from '@/pages/trade'
 import Result from '@/pages/result'
 import Solidity from '@/pages/solidity'
+import Call from '@/pages/call'
 
 Vue.use(Router)
 
@@ -27,5 +28,8 @@ export default new Router({
   }, {
     path: '/eth-pchain/solidity',
     component: Solidity
+  }, {
+    path: '/eth-pchain/solidity/call',
+    component: Call
   }]
 })

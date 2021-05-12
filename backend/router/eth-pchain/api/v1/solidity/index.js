@@ -3,13 +3,31 @@ const fs = require('fs')
 const path = require('path')
 const solc = require('solc')
 
-// const tools = require('../../../../../utils/tools')
+const tools = require('../../../../../utils/tools')
 
 router.get('/json', async ctx => {
   const solPath = ctx.request.query.solPath
   // 读取合约文件的内容
   const pathInfo = path.parse(solPath)
   const fileName = pathInfo.base
+  // 检查是否生成过
+  try {
+    const ctrtName = pathInfo.name
+    const jsonPath = path.resolve(tools.rootPath(), '..', 'chain', 'solidities', `output_${ctrtName}.json`)
+    const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+    if (jsonData.abi && jsonData.bytecode) {
+      ctx.body = {
+        result: {
+          [ctrtName]: Object.assign(jsonData, {jsonPath})
+        }
+      }
+      return
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      throw err
+    }
+  }
   const content = fs.readFileSync(solPath, 'utf-8')
   // 输入源
   const input = {

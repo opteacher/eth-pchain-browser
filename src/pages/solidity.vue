@@ -1,6 +1,6 @@
 <template>
   <layout actTab="solidity">
-    <a-card class="w-100" title="部署智能合约" size="small">
+    <a-card class="w-100" title="部署/调用智能合约" size="small">
       <a-form :form="deploy" @submit="onDeployClicked">
         <a-form-item label="智能合约">
           <a-input-group>
@@ -30,7 +30,10 @@
               v-if="selSolidity.struct.functions && selSolidity.struct.functions.length"
             >
               <a-list :data-source="selSolidity.struct.functions">
-                <a-list-item slot="renderItem" slot-scope="item, index">{{item.name}}</a-list-item>
+                <a-list-item slot="renderItem" slot-scope="item, index">
+                  <div>{{item.name}}</div>
+                  <a slot="actions" @click="onMethodCallClicked(item.name)">调用</a>
+                </a-list-item>
               </a-list>
             </a-collapse-panel>
             <a-collapse-panel header="事件"
@@ -42,7 +45,7 @@
             </a-collapse-panel>
           </a-collapse>
         </a-form-item>
-        <a-form-item label="发布账户">
+        <a-form-item v-if="!selSolidity.contractAddress" label="发布账户">
           <a-select class="w-100" placeholder="选择发布合约的账户"
             v-decorator="['account', {
               rules: [{ required: true, message: '必须选择一个发布合约的账户!' }]
@@ -61,7 +64,7 @@
             v-decorator="['password']"
           />
         </a-form-item>
-        <a-form-item v-if="selSolidity.name" label="gas费用">
+        <a-form-item v-if="!selSolidity.contractAddress && selSolidity.name" label="gas费用">
           <a-input-group>
             <a-row :gutter="8">
               <a-col :span="14">
@@ -188,10 +191,17 @@ export default {
             break
           case 'function':
             this.selSolidity.struct.functions.push({
-              name: item.name
+              name: item.name,
+              params: item.inputs.map(input => ({
+                name: input.name,
+                type: input.type
+              }))
             })
             break
         }
+      }
+      if (ctrtInfo.receipt && ctrtInfo.receipt.contractAddress) {
+        this.selSolidity.contractAddress = ctrtInfo.receipt.contractAddress
       }
     },
     async onSgstGasClicked () {
@@ -199,6 +209,24 @@ export default {
         this.selSolidity.jsonPath
       }`
       this.deploy.setFieldsValue(await utils.reqBackend(path, 'get'))
+    },
+    onMethodCallClicked (method) {
+      let params = null
+      for (const funcInfo of this.selSolidity.struct.functions) {
+        if (funcInfo.name === method) {
+          params = funcInfo.params
+          break
+        }
+      }
+      this.$router.push({
+        path: '/eth-pchain/solidity/call',
+        query: {
+          ctrtName: this.selSolidity.name,
+          ctrtAddr: this.selSolidity.contractAddress,
+          method,
+          params
+        }
+      })
     }
   }
 }

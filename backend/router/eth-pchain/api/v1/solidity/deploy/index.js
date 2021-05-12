@@ -25,6 +25,11 @@ router.post('/', async ctx => {
   const ctrtJson = JSON.parse(
     fs.readFileSync(ctx.request.body.jsonPath, 'utf-8') || '{}'
   )
+  if (ctrtJson.receipt) {
+    ctx.body = {
+      result: ctrtJson.receipt
+    }
+  }
   const account = ctx.request.body.accAddr
   const password = ctx.request.body.accPswd
   ctrtJson.bytecode = '0x' + ctrtJson.bytecode
@@ -48,6 +53,9 @@ router.post('/', async ctx => {
     }).on('error', error => {
       throw(error)
     }).on('receipt', receipt => {
+      fs.writeFileSync(ctx.request.body.jsonPath, JSON.stringify(
+        Object.assign(ctrtJson, {receipt})
+      ))
       result = receipt
     })
   } catch (e) {
