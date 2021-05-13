@@ -251,8 +251,24 @@ const store = new Vuex.Store({
       selTx.ngas = utils.toNum(selTx.gas, false)
       selTx.nblockNumber = utils.toNum(selTx.blockNumber, false)
       const txReceipt = await utils.reqChain('eth_getTransactionReceipt', [txHash])
-      if (txReceipt.contractAddress) {
-        selTx.contractAddress = txReceipt.contractAddress
+      if (txReceipt) {
+        if (txReceipt.contractAddress) {
+          // 合约部署交易
+          selTx.contractAddress = txReceipt.contractAddress
+        } else if (txReceipt.logs.length) {
+          // 合约交易
+          const log = txReceipt.logs[0]
+          selTx.contractAddress = log.address
+          selTx.to = utils.fmtHex(log.topics[2])
+          selTx.value = log.data
+          selTx.nvalue = utils.toNum(selTx.value)
+          const ctrtInfo = await utils.reqBackend(
+            `/eth-pchain/api/v1/solidity/address/${selTx.contractAddress}`,
+            'get'
+          )
+          selTx.unit = ctrtInfo.symbol
+          selTx.contractName = ctrtInfo.name
+        }
       }
       context.commit('SET_SEL_TX', {selTx})
     },

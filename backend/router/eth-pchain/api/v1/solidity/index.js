@@ -44,6 +44,12 @@ router.get('/json', async ctx => {
   // 编译输出
   const output = JSON.parse(solc.compile(JSON.stringify(input)))
   // 提取输出结果中的abi和bytecode
+  if (!output.contracts || !output.contracts[fileName]) {
+    ctx.body = {
+      error: '构建合约失败！solidity文件存在错误'
+    }
+    return
+  }
   const contracts = output.contracts[fileName]
   let result = {}
   for (const contractName in contracts) {
@@ -57,6 +63,63 @@ router.get('/json', async ctx => {
     result[contractName].jsonPath = jsonPath
   }
   ctx.body = {result}
+})
+
+router.get('/address/:address', async ctx => {
+  const address = ctx.params.address.toLowerCase()
+  const outputsPath = path.resolve(...[
+    tools.rootPath(), '..', 'chain', 'solidities'
+  ])
+  const jsonFiles = tools.scanPath(outputsPath, {ext: 'json'})
+  for (const jsonFile of jsonFiles) {
+    const jsonPath = path.resolve(outputsPath, jsonFile)
+    const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+    const addrInFile = jsonData.receipt && jsonData.receipt.contractAddress.toLowerCase()
+    if (addrInFile === address) {
+      const name = path.parse(jsonPath).name.replace('output_', '')
+      let ctrtIns = null
+      try {
+        ctrtIns = new ctx.state.web3.eth.Contract( jsonData.abi, address)
+      } catch (e) {
+        ctx.body = {
+          error: e.message || JSON.stringify(e)
+        }
+      }
+      let decimals = -1
+      try {
+        decimals = parseInt(await ctrtIns.methods['decimals']().call())
+      } catch (e) {
+        console.log (e.message || JSON.stringify(e))
+      }
+      let owner = ''
+      try {
+        owner = await ctrtIns.methods['owner']().call()
+      } catch (e) {
+        console.log (e.message || JSON.stringify(e))
+      }
+      let symbol = ''
+      try {
+        symbol = await ctrtIns.methods['symbol']().call()
+      } catch (e) {
+        console.log (e.message || JSON.stringify(e))
+      }
+      let totalSupply = -1
+      try {
+        totalSupply = parseInt(await ctrtIns.methods['totalSupply']().call())
+      } catch (e) {
+        console.log (e.message || JSON.stringify(e))
+      }
+      ctx.body = {
+        result: {
+          name, address, symbol, owner, decimals, totalSupply
+        }
+      }
+      return
+    }
+  }
+  ctx.body = {
+    result: ''
+  }
 })
 
 module.exports = router

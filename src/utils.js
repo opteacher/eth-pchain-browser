@@ -8,7 +8,7 @@ function procsRespRes (resp, errMsg) {
   if (resp.data.result === undefined) {
     global.store.state.curVue.$notification['error']({
       duration: null,
-      message: errMsg,
+      message: resp.data.error || errMsg,
       description: resp.data.error.message
     })
     return null
@@ -31,10 +31,21 @@ export default {
     const resp = await axios[method](`http://localhost:4000${path}`, body)
     return procsRespRes(resp, '请求后台失败！')
   },
-  toNum (strNum, justRate = true) {
-    return parseInt(strNum, 16) / (justRate ? Math.pow(10, 18) : 1)
+  toNum (strNum, justRate = true, decimal = 18) {
+    return parseInt(strNum, 16) / (justRate ? Math.pow(10, decimal) : 1)
   },
-  toHex (weiNum, justRate = true) {
-    return '0x' + (weiNum * (justRate ? Math.pow(10, 18) : 1)).toString(16)
+  toHex (weiNum, justRate = true, decimal = 18) {
+    return '0x' + (weiNum * (justRate ? Math.pow(10, decimal) : 1)).toString(16)
+  },
+  fmtHex (hex) {
+    const h0x = hex.startsWith('0x') ? '0x' : ''
+    let valIdx = h0x ? 2 : 0
+    for (let i = valIdx; i < hex.length; ++i) {
+      if (hex[i] !== '0') {
+        valIdx = i
+        break
+      }
+    }
+    return h0x + hex.substring(valIdx)
   }
 }

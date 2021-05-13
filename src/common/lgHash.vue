@@ -1,5 +1,5 @@
 <template>
-  <a-row :style="`width: ${width}vw`">
+  <a-row :style="`width: ${width}vw; margin: 0 auto`">
     <a-col :span="22">
       <p class="long-hash">{{hash}}</p>
     </a-col>

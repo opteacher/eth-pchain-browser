@@ -1,11 +1,7 @@
 <template>
   <div>
-    <a-page-header
-      style="border: 1px solid rgb(235, 237, 240)"
-      title="调用智能合约接口"
-      @back="$router.go(-1)"
-    />
-    <div style="padding: 10px 10px; position: fixed; top: 67px; left: 0; right: 0; bottom: 0; overflow-y: scroll">
+    <header-dtl title="合约接口"/>
+    <div class="contract-panel">
       <a-form :form="callForm" @submit="onCallMethodSubmit">
         <a-form-item label="智能合约信息">
           <a-descriptions size="small" bordered>
@@ -21,7 +17,7 @@
           </a-descriptions>
         </a-form-item>
         <a-form-item
-          v-for="param in $route.query.params"
+          v-for="param in params"
           :key="param.name"
           :label="param.name"
           :required="false"
@@ -38,7 +34,8 @@
       </a-form>
       <a-descriptions v-if="result" title="调用结果">
         <a-descriptions-item v-for="(res, index) in result" :key="index" :label="`返回值${index}`">
-          {{res}}
+          <lg-hash v-if="res && res.type === 'LongString'" :hash="res.value" :width="80"/>
+          <p v-else>{{res}}</p>
         </a-descriptions-item>
       </a-descriptions>
     </div>
@@ -46,11 +43,13 @@
 </template>
 
 <script>
+import header from '../common/header'
 import lgHash from '../common/lgHash'
 import utils from '../utils'
 export default {
   components: {
-    'lg-hash': lgHash
+    'lg-hash': lgHash,
+    'header-dtl': header
   },
   data () {
     return {
@@ -58,8 +57,20 @@ export default {
       result: null
     }
   },
+  computed: {
+    params () {
+      return JSON.parse(this.$route.query.params).params
+    }
+  },
+  created () {
+    this.$store.commit({
+      type: 'SET_CURRENT_VUE',
+      instance: this
+    })
+  },
   methods: {
     onCallMethodSubmit (e) {
+      const self = this
       e.preventDefault()
       this.callForm.validateFields(async (err, values) => {
         if (err) {
@@ -67,15 +78,51 @@ export default {
         }
         console.log('Received values of form: ', values)
 
-        const url = `/eth-pchain/api/v1/solidity/call/${this.$route.query.method}`
-        const res = await utils.reqBackend(url, 'post', {
-          contractName: this.$route.query.ctrtName,
-          contractAddr: this.$route.query.ctrtAddr,
-          params: values.params ? Object.values(values.params) : undefined
-        })
-        this.result = [res]
+        const execFunc = async function (execType = 'call') {
+          const uri = `/eth-pchain/api/v1/solidity/exec/${execType}/${self.$route.query.method}`
+          let res = await utils.reqBackend(uri, 'post', {
+            contractName: self.$route.query.ctrtName,
+            contractAddr: self.$route.query.ctrtAddr,
+            params: values.params ? Object.values(values.params) : undefined
+          })
+          if (self.$route.query.send) {
+            self.result = [{
+              type: 'LongString',
+              value: res.transactionHash
+            }]
+          } else {
+            self.result = [res]
+          }
+        }
+
+        if (self.$route.query.send) {
+          const modal = self.$confirm({
+            title: '确认操作',
+            content: '该函数的执行会发送交易，确定执行？',
+            async onOk () {
+              await utils.reqChain('miner_start')
+              await execFunc('send')
+              await utils.reqChain('miner_stop')
+              modal.destroy()
+            }
+          })
+        } else {
+          await execFunc()
+        }
       })
     }
   }
 }
 </script>
+
+<style>
+.contract-panel {
+  padding: 10px 10px;
+  position: fixed;
+  top: 67px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: scroll;
+}
+</style>

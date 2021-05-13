@@ -1,27 +1,25 @@
 <template>
   <div>
-    <a-page-header
-      style="border: 1px solid rgb(235, 237, 240)"
-      title="详情页"
-      :sub-title="subTitle"
-      @back="$router.go(-1)"
-    />
+    <header-dtl title="交易详情"/>
     <div class="info-panel">
       <a-descriptions v-if="$route.query.type === 'txHash'" title="交易信息" bordered size="small">
         <a-descriptions-item label="交易哈希">
           <lg-hash :hash="$route.query.q" :width="55"/>
         </a-descriptions-item>
-        <a-descriptions-item label="发送方">
-          <lg-hash :hash="$store.state.selTx.value.from || 'pending'" :width="55"/>
+        <a-descriptions-item v-if="$store.state.selTx.value.contractName" label="合约名">
+          {{$store.state.selTx.value.contractName}}
         </a-descriptions-item>
         <a-descriptions-item v-if="$store.state.selTx.value.contractAddress" label="合约地址">
           <lg-hash :hash="$store.state.selTx.value.contractAddress || 'pending'" :width="55"/>
         </a-descriptions-item>
-        <a-descriptions-item v-else label="接收方">
+        <a-descriptions-item label="发送方">
+          <lg-hash :hash="$store.state.selTx.value.from || 'pending'" :width="55"/>
+        </a-descriptions-item>
+        <a-descriptions-item label="接收方">
           <lg-hash :hash="$store.state.selTx.value.to || 'pending'" :width="55"/>
         </a-descriptions-item>
         <a-descriptions-item label="金额">
-          {{$store.state.selTx.value.nvalue || 0}}&nbsp;ETH
+          {{$store.state.selTx.value.nvalue || 0}}&nbsp;{{$store.state.selTx.value.unit || 'ETH'}}
         </a-descriptions-item>
         <a-descriptions-item label="gas费">
           {{$store.state.selTx.value.ngas || 0}}&nbsp;Satoshi
@@ -97,19 +95,18 @@
         </a-descriptions-item>
       </a-descriptions>
     </div>
-    <sync-btn/>
   </div>
 </template>
 
 <script>
 import lgHash from '../common/lgHash'
-import syncBtn from '../common/syncBtn'
+import header from '../common/header'
 export default {
   name: 'detail',
   inject: ['reload'],
   components: {
     'lg-hash': lgHash,
-    'sync-btn': syncBtn
+    'header-dtl': header
   },
   data () {
     return {

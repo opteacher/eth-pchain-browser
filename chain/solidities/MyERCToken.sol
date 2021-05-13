@@ -41,14 +41,14 @@ contract MyERCToken {
     return true;
   }
 	/////////////////////////////////////////////////////////////////////////////
-  function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
-      return allowed[_owner][_spender];//允许_spender从_owner中转出的token数
+  function allowance(address _spender) public view returns (uint256 remaining) {
+    return allowed[msg.sender][_spender];//允许_spender从_owner中转出的token数
   }
   /////////////////////////////////////////////////////////////////////////////
   //返回值为true时，表示转账成功
   event Transfer(address indexed _from, address indexed _to, uint256 _value);
 
-  function transfer(address _to, uint256 _amount) public returns (bool success) {
+  function transfer(address _to, uint256 _amount) payable public returns (bool success) {
     //如果发送方有足够的资金并且发送数量非0 ，则发送给指定地址
     if (balances[msg.sender] >= _amount 
       && _amount > 0
@@ -63,9 +63,9 @@ contract MyERCToken {
       }
   }
   /////////////////////////////////////////////////////////////////////////////
-  function transferFrom(address _from, address _to, uint256 _amount) public returns (bool success) {
+  function transferFrom(address _from, address _to, uint256 _amount) payable public returns (bool success) {
     if (balances[_from] >= _amount
-      && allowed[_from][msg.sender] >= _amount
+      && allowed[msg.sender][_from] >= _amount
       && _amount > 0
       && balances[_to] + _amount > balances[_to]) {
     balances[_from] -= _amount;

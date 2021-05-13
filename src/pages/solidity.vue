@@ -31,8 +31,13 @@
             >
               <a-list :data-source="selSolidity.struct.functions">
                 <a-list-item slot="renderItem" slot-scope="item, index">
-                  <div>{{item.name}}</div>
-                  <a slot="actions" @click="onMethodCallClicked(item.name)">调用</a>
+                  <div>
+                    {{item.name}}
+                    <a-tag v-if="item.payable" color="green">发送交易</a-tag>
+                  </div>
+                  <a v-if="selSolidity.contractAddress" slot="actions"
+                    @click="onMethodCallClicked(item.name)"
+                  >调用</a>
                 </a-list-item>
               </a-list>
             </a-collapse-panel>
@@ -59,10 +64,7 @@
           </a-select>
         </a-form-item>
         <a-form-item v-if="selAccount" label="账户密码">
-          <a-input-password
-            placeholder="输入账户密码"
-            v-decorator="['password']"
-          />
+          <a-input-password placeholder="输入账户密码" v-decorator="['password']"/>
         </a-form-item>
         <a-form-item v-if="!selSolidity.contractAddress && selSolidity.name" label="gas费用">
           <a-input-group>
@@ -84,22 +86,8 @@
             </a-row>
           </a-input-group>
         </a-form-item>
-        <a-button type="primary" block html-type="submit">
-          部署
-        </a-button>
+        <a-button type="primary" block html-type="submit">部署</a-button>
       </a-form>
-    </a-card>
-    <a-card v-if="newContract.contractAddress"
-      class="w-100 mt-5" :title="newContract.name" size="small"
-    >
-      <a-descriptions bordered size="small">
-        <a-descriptions-item label="合约地址">
-          <lg-hash :hash="newContract.contractAddress" :width="55"/>
-        </a-descriptions-item>
-        <a-descriptions-item label="交易哈希">
-          <lg-hash :hash="newContract.transactionHash" :width="55"/>
-        </a-descriptions-item>
-      </a-descriptions>
     </a-card>
   </layout>
 </template>
@@ -120,8 +108,7 @@ export default {
         name: ''
       },
       selAccount: '',
-      deploy: this.$form.createForm(this, {name: 'deploy'}),
-      newContract: {}
+      deploy: this.$form.createForm(this, {name: 'deploy'})
     }
   },
   created () {
@@ -195,7 +182,8 @@ export default {
               params: item.inputs.map(input => ({
                 name: input.name,
                 type: input.type
-              }))
+              })),
+              payable: item.payable
             })
             break
         }
@@ -211,20 +199,25 @@ export default {
       this.deploy.setFieldsValue(await utils.reqBackend(path, 'get'))
     },
     onMethodCallClicked (method) {
-      let params = null
+      let callFuncInfo = null
       for (const funcInfo of this.selSolidity.struct.functions) {
         if (funcInfo.name === method) {
-          params = funcInfo.params
+          callFuncInfo = funcInfo
           break
         }
       }
       this.$router.push({
-        path: '/eth-pchain/solidity/call',
+        path: '/eth-pchain/solidity/call-send',
         query: {
           ctrtName: this.selSolidity.name,
           ctrtAddr: this.selSolidity.contractAddress,
           method,
-          params
+          params: JSON.stringify({
+            params: callFuncInfo.params
+          }),
+          // 注意：这里把带payable标记的函数都设定为会发送交易，并调用send执行。
+          // 但payable和send并不是强关联的，此处这么处理是sol没有很好标记函数的方法，不得已的处理
+          send: callFuncInfo.payable
         }
       })
     }
