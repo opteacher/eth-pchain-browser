@@ -30,7 +30,7 @@ CMD ["geth", \
   "--dev", \
   "--dev.period", "1"]
 
-# sudo docker build -t=eth-pvt-chain .
-# sudo docker run --rm -p 8545:8545 -d eth-pvt-chain
+# docker build -t eth-private-chain .
+# docker run --rm -p 8545:8545 -d eth-private-chain
 
 # miner.setEtherbase(eth.coinbase)

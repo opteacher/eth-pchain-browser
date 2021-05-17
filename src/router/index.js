@@ -10,26 +10,28 @@ import CallSend from '@/pages/callSend'
 Vue.use(Router)
 
 export default new Router({
+  base: '/distribute/',
+  mode:'history',
   routes: [{
     path: '/',
-    redirect: '/eth-pchain/home'
+    redirect: '/home'
   }, {
-    path: '/eth-pchain/home',
+    path: '/home',
     component: Home
   }, {
-    path: '/eth-pchain/detail',
+    path: '/detail',
     component: Detail
   }, {
-    path: '/eth-pchain/trade',
+    path: '/trade',
     component: Trade
   }, {
-    path: '/eth-pchain/result',
+    path: '/result',
     component: Result
   }, {
-    path: '/eth-pchain/solidity',
+    path: '/solidity',
     component: Solidity
   }, {
-    path: '/eth-pchain/solidity/call-send',
+    path: '/solidity/call-send',
     component: CallSend
   }]
 })
