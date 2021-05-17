@@ -31,6 +31,6 @@ CMD ["geth", \
   "--dev.period", "1"]
 
 # docker build -t eth-private-chain .
-# docker run --rm -p 8545:8545 -d eth-private-chain
+# docker run --rm -p 127.0.0.1:8545:8545 -d eth-private-chain
 
 # miner.setEtherbase(eth.coinbase)

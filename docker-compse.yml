@@ -1,0 +1,30 @@
+version: '3'
+services:
+  frontend:
+    build:
+      context: .
+    networks:
+      - eth-private-chain
+    ports:
+      - 8080:8080
+    depends_on:
+      - chain
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+    networks:
+      - eth-private-chain
+    depends_on:
+      - chain
+
+  chain:
+    build:
+      context: ./chain
+    networks:
+      - eth-private-chain
+
+networks:
+  eth-private-chain:
+    driver: bridge
